@@ -92,8 +92,8 @@ void draw_grid(Grid *g) {
       int zid = g->cells[i][j].zone_id;
       int zid_left = (j > 0) ? g->cells[i][j - 1].zone_id : -1; // Special value
       int dgts = count_digits(g->cells[i][j].val);
-      int right = (5-dgts)/2;
-      int left = 5-right-dgts;
+      int right = (5 - dgts) / 2;
+      int left = 5 - right - dgts;
 
       if (zid != zid_left) {
         printf("┃");
@@ -180,33 +180,36 @@ bool is_ok_around(Grid *g, int i, int j) {
 
 bool is_sol(Grid *g) {
   // 1..n in each zone
+  int *vals_attained;
   int zn = g->zones_n;
   for (int k = 0; k < zn; k++) { // k = zone id
     int zone_size = g->zone_sizes[k];
-    int *vals_attained = calloc(zone_size, sizeof(int));
+    vals_attained = calloc(zone_size, sizeof(int));
     assert(vals_attained);
     for (int i = 0; i < g->n; i++) {
       for (int j = 0; j < g->m; j++) {
         if (g->cells[i][j].zone_id == k) {
           int val = g->cells[i][j].val;
           if (val < 1 || val > zone_size) {
+            free(vals_attained);
             return false;
           }
           vals_attained[val - 1] += 1;
         }
         if (!is_ok_around(g, i, j)) {
+          free(vals_attained);
           return false;
         }
       }
     }
     if (!all_set_to(vals_attained, zone_size, 1)) {
+      free(vals_attained);
       return false;
     }
     // printf("\n");
   }
-
+  free(vals_attained);
   // grid checks
-
   return true;
 }
 
@@ -248,6 +251,7 @@ int main(int argc, char *argv[]) {
   //   printf("%d, ", grid->zone_sizes[i]);
   // }
   printf("%d\n", is_sol(grid));
+  grid_free(grid);
   cfg_free(cfg);
   return 0;
 }
