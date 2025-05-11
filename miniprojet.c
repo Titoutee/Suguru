@@ -118,99 +118,69 @@ void draw_grid(Grid *g) {
   printf("\n");
 }
 
-bool all_set_to(int *arr, size_t size, int comp) {
-  for (int i = 0; i < size; i++) {
-    // printf("%d, ", arr[i]);
-    if (arr[i] != comp) {
-      return false;
-    }
-  }
-  return true;
-}
+bool _valid(Grid *g, int row, int col, int val) {
+  int zone = g->cells[row][col].zone_id;
 
-bool is_ok_around(Grid *g, int i, int j) {
-  int val = g->cells[i][j].val;
-  int n = g->n;
-  int m = g->m;
-  if (i - 1 >= 0) {
-    if (g->cells[i - 1][j].val == val) {
-      return false;
-    }
-    if (j - 1 >= 0) {
-      if (g->cells[i - 1][j - 1].val == val) {
+  // Vérifier doublon dans la zone
+  for (int i = 0; i < g->n; i++) {
+    for (int j = 0; j < g->m; j++) {
+      if (g->cells[i][j].zone_id == zone && g->cells[i][j].val == val)
         return false;
-      }
-    }
-    if (j + 1 < m) {
-      if (g->cells[i - 1][j + 1].val == val) {
-        return false;
-      }
-    }
-  }
-  if (i + 1 < n) {
-    if (g->cells[i + 1][j].val == val) {
-      return false;
-    }
-    if (j - 1 >= 0) {
-      if (g->cells[i + 1][j - 1].val == val) {
-        return false;
-      }
-    }
-    if (j + 1 < m) {
-      if (g->cells[i + 1][j + 1].val == val) {
-        return false;
-      }
     }
   }
 
-  if (j - 1 >= 0) {
-    if (g->cells[i][j - 1].val == val) {
-      return false;
-    }
-  }
-
-  if (j + 1 < m) {
-    if (g->cells[i][j + 1].val == val) {
-      return false;
+  // Vérifier les voisins (y compris diagonaux)
+  for (int dr = -1; dr <= 1; dr++) {
+    for (int dc = -1; dc <= 1; dc++) {
+      int nr = row + dr;
+      int nc = col + dc;
+      if (nr >= 0 && nr < g->n && nc >= 0 && nc < g->m) {
+        if (g->cells[nr][nc].val == val)
+          return false;
+      }
     }
   }
 
   return true;
 }
 
-bool is_sol(Grid *g) {
-  // 1..n in each zone
-  int *vals_attained;
-  int zn = g->zones_n;
-  for (int k = 0; k < zn; k++) { // k = zone id
-    int zone_size = g->zone_sizes[k];
-    vals_attained = calloc(zone_size, sizeof(int));
-    assert(vals_attained);
-    for (int i = 0; i < g->n; i++) {
-      for (int j = 0; j < g->m; j++) {
-        if (g->cells[i][j].zone_id == k) {
-          int val = g->cells[i][j].val;
-          if (val < 1 || val > zone_size) {
-            free(vals_attained);
-            return false;
-          }
-          vals_attained[val - 1] += 1;
-        }
-        if (!is_ok_around(g, i, j)) {
-          free(vals_attained);
+bool valid(Grid *g) {
+  for (int i = 0; i < g->n; i++) {
+    for (int j = 0; j < g->m; j++) {
+      if (g->cells[i][j].val != 0) {
+        if (!_valid(g, i, j, g->cells[i][j].val)) {
           return false;
         }
       }
     }
-    if (!all_set_to(vals_attained, zone_size, 1)) {
-      free(vals_attained);
-      return false;
-    }
-    // printf("\n");
   }
-  free(vals_attained);
-  // grid checks
   return true;
+}
+
+bool solve(Grid *g, int i, int j) {
+  if (i == g->n) {
+    return true; // We found a solution which attained the end of the grid
+  }
+
+  int next_i = (j == g->m - 1) ? i + 1 : i;
+  int next_j = (j + 1) % (g->m);
+
+  if (g->cells[i][j].val != 0) {
+    return solve(g, next_i, next_j);
+  }
+
+  int zid = g->cells[i][j].zone_id;
+  int max_val_for_zone = g->zone_sizes[zid];
+
+  for (int val = 1; val <= max_val_for_zone; val++) {
+    if (_valid(g, i, j, val)) {
+      g->cells[i][j].val = val;
+      if (solve(g, next_i, next_j))
+        return true;
+      g->cells[i][j].val = 0;
+    }
+  }
+  return false;
 }
 
 void grid_free(Grid *g) {
@@ -246,11 +216,25 @@ int main(int argc, char *argv[]) {
   // printf("\n");
 
   Grid *grid = new_grid(cfg);
+  printf("Initial state: \n");
   draw_grid(grid);
+  printf("\n");
   // for (int i = 0; i < grid->zones_n; i++) {
   //   printf("%d, ", grid->zone_sizes[i]);
   // }
-  printf("%d\n", is_sol(grid));
+  // printf("%d\n", is_sol(grid));
+  // if (!valid(grid)) {
+  //   fprintf(stderr, "No solution was found for this config (early).\n");
+  //   grid_free(grid);
+  //   cfg_free(cfg);
+  //   exit(EXIT_SUCCESS);
+  // }
+  if (solve(grid, 0, 0)) {
+    printf("A solution was found: \n");
+    draw_grid(grid);
+  } else {
+    fprintf(stderr, "No solution was found for this config.\n");
+  }
   grid_free(grid);
   cfg_free(cfg);
   return 0;
