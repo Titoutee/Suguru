@@ -8,7 +8,6 @@
 // ... (*n)
 
 #include "parser.h"
-#include <stddef.h>
 
 int max(int *arr[], size_t n, size_t m) {
   assert(arr && n && m);
@@ -24,7 +23,7 @@ int max(int *arr[], size_t n, size_t m) {
   return max;
 }
 
-int split_into_array(char *line, const char *sep, char *tokens[],
+int split_into_array(char *line, char *sep, char *tokens[],
                      int max_tokens) {
   int count = 0;
   char *token = strtok(line, sep);

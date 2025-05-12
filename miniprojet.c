@@ -124,7 +124,7 @@ bool _valid(Grid *g, int row, int col, int val) {
   // Vérifier doublon dans la zone
   for (int i = 0; i < g->n; i++) {
     for (int j = 0; j < g->m; j++) {
-      if (g->cells[i][j].zone_id == zone && g->cells[i][j].val == val)
+      if (g->cells[i][j].zone_id == zone && g->cells[i][j].val == val && (i != row || j != col))
         return false;
     }
   }
@@ -134,7 +134,7 @@ bool _valid(Grid *g, int row, int col, int val) {
     for (int dc = -1; dc <= 1; dc++) {
       int nr = row + dr;
       int nc = col + dc;
-      if (nr >= 0 && nr < g->n && nc >= 0 && nc < g->m) {
+      if (nr >= 0 && nr < g->n && nc >= 0 && nc < g->m &&( dr != 0 || dc != 0)) {
         if (g->cells[nr][nc].val == val)
           return false;
       }
@@ -219,16 +219,13 @@ int main(int argc, char *argv[]) {
   printf("Initial state: \n");
   draw_grid(grid);
   printf("\n");
-  // for (int i = 0; i < grid->zones_n; i++) {
-  //   printf("%d, ", grid->zone_sizes[i]);
-  // }
-  // printf("%d\n", is_sol(grid));
-  // if (!valid(grid)) {
-  //   fprintf(stderr, "No solution was found for this config (early).\n");
-  //   grid_free(grid);
-  //   cfg_free(cfg);
-  //   exit(EXIT_SUCCESS);
-  // }
+  
+  if (!valid(grid)) {
+    fprintf(stderr, "No solution was found for this config (early).\n");
+    grid_free(grid);
+    cfg_free(cfg);
+    exit(EXIT_SUCCESS);
+  }
   if (solve(grid, 0, 0)) {
     printf("A solution was found: \n");
     draw_grid(grid);
